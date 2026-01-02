@@ -18,33 +18,45 @@ body{
 }
 .app{display:flex;gap:28px;padding:18px}
 .game{width:520px}
-.topbar{display:flex;gap:12px}
+.topbar{display:flex;gap:12px;align-items:flex-start}
 
 /* upload */
 #uploadPanel{display:grid;grid-template-columns:repeat(4,32px);gap:6px}
-.uBtn{width:32px;height:28px;background:#fff;color:#000;border:1px solid #bbb;cursor:pointer}
+.uBtn{width:32px;height:28px;background:#fff;color:#000;border:1px solid #bbb;cursor:pointer;border-radius:2px}
 
 /* counter */
 #counterPanel{
   display:grid;grid-template-columns:repeat(4,1fr);
-  gap:6px;padding:8px;background:#111;border:1px solid var(--line);
+  gap:6px;padding:8px;background:var(--panel);border:1px solid var(--line);
   min-width:260px
 }
-.counterItem{background:#000;border:1px solid #555;padding:4px;font-size:12px;text-align:center}
+.counterItem{background:#000;border:1px solid #555;padding:4px;font-size:12px;text-align:center;white-space:nowrap}
 
 /* grid */
-#grid{margin-top:10px;display:grid;grid-template-columns:repeat(10,var(--cell));gap:var(--gap);perspective:1000px}
-.card{width:var(--cell);height:var(--cell);position:relative;transform-style:preserve-3d;transition:.55s;cursor:pointer}
+#grid{
+  margin-top:10px;display:grid;
+  grid-template-columns:repeat(10,var(--cell));
+  gap:var(--gap);perspective:1000px
+}
+.card{
+  width:var(--cell);height:var(--cell);
+  position:relative;transform-style:preserve-3d;
+  transition:.55s;cursor:pointer;user-select:none
+}
 .card.flipped{transform:rotateY(180deg)}
-.face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border:1px solid #666;backface-visibility:hidden;font-size:12px}
+.face{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid #666;backface-visibility:hidden;font-size:12px;overflow:hidden
+}
 .front{background:#3b3b3b}
 .back{background:#000;transform:rotateY(180deg)}
-.back img{width:100%;height:100%;object-fit:contain}
+.back img{width:100%;height:100%;object-fit:contain;background:#000}
 
 /* controls */
 .controls{display:flex;gap:8px;margin-top:14px}
 input,select{padding:8px}
-button{padding:8px 14px;cursor:pointer}
+button{padding:8px 14px;cursor:pointer;border-radius:2px}
 
 /* leaderboard */
 .right{min-width:440px}
@@ -52,18 +64,40 @@ button{padding:8px 14px;cursor:pointer}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{border:1px solid #555;padding:6px;text-align:center}
 th{background:#222;position:sticky;top:0}
-.lb1{background:var(--gold);color:#000;font-weight:bold}
-.lb2{background:var(--silver);color:#000;font-weight:bold}
-.lb3{background:var(--bronze);color:#000;font-weight:bold}
+.lb1{background:linear-gradient(90deg,#6b5200,var(--gold),#6b5200);color:#000;font-weight:bold}
+.lb2{background:linear-gradient(90deg,#666,var(--silver),#666);color:#000;font-weight:bold}
+.lb3{background:linear-gradient(90deg,#5a3a1a,var(--bronze),#5a3a1a);color:#000;font-weight:bold}
 
-/* top prize */
+/* ===== TOP PRIZE + GLOW ===== */
 .topPrizes{display:flex;gap:18px;margin-top:14px}
-.tpItem{display:flex;flex-direction:column;align-items:center}
-.tpBox{width:120px;height:100px;background:#000;border:2px solid;display:flex;align-items:center;justify-content:center}
+.tpItem{display:flex;flex-direction:column;align-items:center;gap:6px}
+.tpBox{
+  width:120px;height:100px;background:#000;border:2px solid;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;border-radius:4px
+}
 .tpBox img{width:100%;height:100%;object-fit:contain}
-.gold{border-color:var(--gold)}
-.silver{border-color:var(--silver)}
-.bronze{border-color:var(--bronze)}
+
+/* glowing animation */
+@keyframes glowGold{
+  0%{box-shadow:0 0 4px var(--gold)}
+  50%{box-shadow:0 0 14px var(--gold)}
+  100%{box-shadow:0 0 4px var(--gold)}
+}
+@keyframes glowSilver{
+  0%{box-shadow:0 0 4px var(--silver)}
+  50%{box-shadow:0 0 12px #eee}
+  100%{box-shadow:0 0 4px var(--silver)}
+}
+@keyframes glowBronze{
+  0%{box-shadow:0 0 4px var(--bronze)}
+  50%{box-shadow:0 0 12px var(--bronze)}
+  100%{box-shadow:0 0 4px var(--bronze)}
+}
+
+.gold{border-color:var(--gold);animation:glowGold 2s infinite}
+.silver{border-color:var(--silver);animation:glowSilver 2s infinite}
+.bronze{border-color:var(--bronze);animation:glowBronze 2s infinite}
 </style>
 </head>
 
@@ -75,7 +109,9 @@ th{background:#222;position:sticky;top:0}
     <div id="uploadPanel"></div>
     <div id="counterPanel"></div>
   </div>
+
   <div id="grid"></div>
+
   <div class="controls">
     <input id="userId" placeholder="User ID">
     <select id="pay">
@@ -107,120 +143,180 @@ th{background:#222;position:sticky;top:0}
 </div>
 
 <script>
-const PRICE={CASH:2000,SECRET:1}
-const TOTAL={P1:1,P2:1,P3:1,P4:7,P5:10,P6:10,P7:20,P8:50}
-const LABEL={P1:"PRIZE 1",P2:"PRIZE 2",P3:"PRIZE 3",P4:"PRIZE 4",P5:"PRIZE 5",P6:"PRIZE 6",P7:"PRIZE 7",P8:"PRIZE 8"}
-const TOP3=["P1","P2","P3"]
+/* ===== CONFIG ===== */
+const PRICE={CASH:2000,SECRET:1};
+const TOTAL={P1:1,P2:1,P3:1,P4:7,P5:10,P6:10,P7:20,P8:50};
+const LABEL={P1:"PRIZE 1",P2:"PRIZE 2",P3:"PRIZE 3",P4:"PRIZE 4",P5:"PRIZE 5",P6:"PRIZE 6",P7:"PRIZE 7",P8:"PRIZE 8"};
+const TOP3=new Set(["P1","P2","P3"]);
+const KEYS=Object.keys(TOTAL);
 
-let prizes=[],opened=[],admin=null,adminUsed={P1:false,P2:false,P3:false}
-let images=JSON.parse(localStorage.getItem("imgs")||"{}")
-let lb=JSON.parse(localStorage.getItem("lb")||"{}")
+const LS_IMG="imgs_glow_final";
+const LS_LB="lb_glow_final";
 
-const grid=document.getElementById("grid")
-const counter=document.getElementById("counterPanel")
-const lbBody=document.getElementById("lb")
+let prizes=[],opened=[];
+let adminArmed=null;
+let adminUsed={P1:false,P2:false,P3:false};
+let images=JSON.parse(localStorage.getItem(LS_IMG)||"{}");
+let lb=JSON.parse(localStorage.getItem(LS_LB)||"{}");
 
-const uid=()=>document.getElementById("userId").value.trim().toUpperCase()
+const grid=document.getElementById("grid");
+const counter=document.getElementById("counterPanel");
+const lbBody=document.getElementById("lb");
+
+const uid=()=>document.getElementById("userId").value.trim().toUpperCase();
+const paySel=()=>document.getElementById("pay").value;
+
+function saveLB(){localStorage.setItem(LS_LB,JSON.stringify(lb))}
+function saveIMG(){localStorage.setItem(LS_IMG,JSON.stringify(images))}
 
 function gen(){
-  prizes=[]
-  Object.entries(TOTAL).forEach(([p,n])=>{for(let i=0;i<n;i++)prizes.push(p)})
-  prizes.sort(()=>Math.random()-0.5)
-  opened=Array(100).fill(false)
-  admin=null;adminUsed={P1:false,P2:false,P3:false}
+  prizes=[];
+  KEYS.forEach(p=>{for(let i=0;i<TOTAL[p];i++)prizes.push(p)});
+  for(let i=prizes.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [prizes[i],prizes[j]]=[prizes[j],prizes[i]];
+  }
+  opened=Array(100).fill(false);
+  adminArmed=null;
+  adminUsed={P1:false,P2:false,P3:false};
 }
 
+function backHTML(p){return images[p]?`<img src="${images[p]}">`:LABEL[p]}
+
 function renderGrid(){
-  grid.innerHTML=""
+  grid.innerHTML="";
   for(let i=0;i<100;i++){
-    const d=document.createElement("div")
-    d.className="card"
-    d.innerHTML=`<div class="face front">${i+1}</div><div class="face back">${images[prizes[i]]?`<img src="${images[prizes[i]]}">`:LABEL[prizes[i]]}</div>`
-    d.onclick=()=>open(i,d,true)
-    grid.appendChild(d)
+    const d=document.createElement("div");
+    d.className="card";
+    d.innerHTML=`<div class="face front">${i+1}</div><div class="face back">${backHTML(prizes[i])}</div>`;
+    d.onclick=()=>openCell(i,d,true);
+    grid.appendChild(d);
   }
-  renderCounter()
+  renderCounter();
 }
 
 function renderCounter(){
-  counter.innerHTML=""
-  Object.keys(TOTAL).forEach(p=>{
-    const used=prizes.filter((x,i)=>x===p&&opened[i]).length
-    counter.innerHTML+=`<div class="counterItem">${LABEL[p]} : ${TOTAL[p]-used}</div>`
-  })
+  counter.innerHTML="";
+  KEYS.forEach(p=>{
+    const used=prizes.filter((x,i)=>x===p&&opened[i]).length;
+    counter.innerHTML+=`<div class="counterItem">${LABEL[p]} : ${TOTAL[p]-used}</div>`;
+  });
 }
 
 function renderLB(){
-  lbBody.innerHTML=""
+  lbBody.innerHTML="";
   Object.entries(lb).sort((a,b)=>b[1].open-a[1].open).forEach(([u,d],i)=>{
-    const tr=document.createElement("tr")
-    if(i<3)tr.className=["lb1","lb2","lb3"][i]
-    tr.innerHTML=`<td>${i+1}</td><td>${u}</td><td>${d.open}</td><td>Rp.${(d.cash||0).toLocaleString()}/${d.secret||0} SECRET</td>`
-    lbBody.appendChild(tr)
-  })
-}
-
-function open(i,el,count){
-  if(opened[i])return
-  if(count && !uid())return alert("ISI USER ID")
-  let p=prizes[i]
-
-  if(admin && !adminUsed[admin]){
-    const j=prizes.findIndex((x,k)=>!opened[k]&&x===admin)
-    if(j!==-1){[prizes[i],prizes[j]]=[prizes[j],prizes[i]];p=admin;adminUsed[admin]=true}
-    admin=null
-  }else if(TOP3.includes(p)&&count)return
-
-  opened[i]=true
-  el.classList.add("flipped")
-
-  if(count){
-    lb[uid()]??={open:0,cash:0,secret:0}
-    lb[uid()].open++
-    lb[uid()][document.getElementById("pay").value.toLowerCase()]+=PRICE[document.getElementById("pay").value]
-    localStorage.setItem("lb",JSON.stringify(lb))
-    renderLB()
-  }
-  renderCounter()
-}
-
-document.getElementById("openAll").onclick=()=>{
-  document.querySelectorAll(".card").forEach((c,i)=>!opened[i]&&open(i,c,false))
-}
-
-document.getElementById("reset").onclick=()=>{gen();renderGrid()}
-
-document.addEventListener("keydown",e=>{
-  if(e.key==="F1")admin="P1"
-  if(e.key==="F2")admin="P2"
-  if(e.key==="F3")admin="P3"
-  if(e.key==="F6"&&confirm("Reset leaderboard?")){lb={};localStorage.setItem("lb","{}");renderLB()}
-})
-
-function init(){
-  const up=document.getElementById("uploadPanel")
-  Object.keys(TOTAL).forEach((p,i)=>{
-    const inp=document.createElement("input")
-    inp.type="file";inp.hidden=true
-    inp.onchange=e=>{
-      const r=new FileReader()
-      r.onload=()=>{images[p]=r.result;localStorage.setItem("imgs",JSON.stringify(images));renderGrid();renderTop()}
-      r.readAsDataURL(e.target.files[0])
-    }
-    const b=document.createElement("button")
-    b.className="uBtn";b.textContent=i+1;b.onclick=()=>inp.click()
-    up.append(b,inp)
-  })
-  gen();renderGrid();renderLB();renderTop()
+    const tr=document.createElement("tr");
+    if(i<3) tr.className=["lb1","lb2","lb3"][i];
+    tr.innerHTML=`<td>${i+1}</td><td>${u}</td><td>${d.open}</td><td>Rp.${(d.cash||0).toLocaleString()}/${d.secret||0} SECRET</td>`;
+    lbBody.appendChild(tr);
+  });
 }
 
 function renderTop(){
   ["P1","P2","P3"].forEach((p,i)=>{
-    document.getElementById("tp"+(i+1)).innerHTML=images[p]?`<img src="${images[p]}">`:LABEL[p]
-  })
+    document.getElementById("tp"+(i+1)).innerHTML=images[p]?`<img src="${images[p]}">`:LABEL[p];
+  });
 }
 
-init()
+function remainingUnopened(){return opened.filter(x=>!x).length}
+function remainingNonTop3(){
+  let c=0;for(let i=0;i<100;i++)if(!opened[i]&&!TOP3.has(prizes[i]))c++;return c;
+}
+function canNormalTop3(){return remainingUnopened()<=3||remainingNonTop3()===0}
+function findUnopenedWithPrize(p){
+  for(let i=0;i<100;i++)if(!opened[i]&&prizes[i]===p)return i;
+  return -1;
+}
+
+function openCell(i,el,count){
+  if(opened[i]){adminArmed=null;return}
+  if(count && !uid()) return alert("ISI USER ID");
+
+  let p=prizes[i];
+
+  if(adminArmed){
+    const f=adminArmed; adminArmed=null;
+    if(!adminUsed[f]){
+      const j=findUnopenedWithPrize(f);
+      if(j!==-1){
+        [prizes[i],prizes[j]]=[prizes[j],prizes[i]];
+        p=prizes[i]; adminUsed[f]=true;
+      }
+    }
+  }else{
+    if(TOP3.has(p)&&!canNormalTop3()) return;
+  }
+
+  opened[i]=true;
+  el.classList.add("flipped");
+  el.querySelector(".back").innerHTML=backHTML(prizes[i]);
+
+  if(count){
+    lb[uid()]??={open:0,cash:0,secret:0};
+    lb[uid()].open++;
+    const m=paySel();
+    lb[uid()][m.toLowerCase()]+=PRICE[m];
+    saveLB(); renderLB();
+  }
+  renderCounter();
+}
+
+document.getElementById("openAll").onclick=()=>{
+  adminArmed=null;
+  document.querySelectorAll(".card").forEach((c,i)=>{
+    if(!opened[i]){
+      opened[i]=true;
+      c.classList.add("flipped");
+      c.querySelector(".back").innerHTML=backHTML(prizes[i]);
+    }
+  });
+  renderCounter();
+};
+
+document.getElementById("reset").onclick=()=>{gen();renderGrid()};
+
+document.addEventListener("keydown",e=>{
+  if(["F1","F2","F3","F6"].includes(e.key)) e.preventDefault();
+  if(e.key==="F1") adminArmed="P1";
+  if(e.key==="F2") adminArmed="P2";
+  if(e.key==="F3") adminArmed="P3";
+  if(e.key==="F6" && confirm("Reset leaderboard?")){
+    lb={}; saveLB(); renderLB();
+  }
+});
+
+function initUpload(){
+  const up=document.getElementById("uploadPanel");
+  KEYS.forEach((p,i)=>{
+    const inp=document.createElement("input");
+    inp.type="file"; inp.accept="image/*"; inp.hidden=true;
+    inp.onchange=e=>{
+      const f=e.target.files[0]; if(!f) return;
+      const r=new FileReader();
+      r.onload=()=>{
+        images[p]=r.result; saveIMG();
+        document.querySelectorAll(".card").forEach((c,idx)=>{
+          if(prizes[idx]===p) c.querySelector(".back").innerHTML=backHTML(p);
+        });
+        renderTop();
+      };
+      r.readAsDataURL(f); inp.value="";
+    };
+    const b=document.createElement("button");
+    b.className="uBtn"; b.textContent=i+1; b.onclick=()=>inp.click();
+    up.append(b,inp);
+  });
+}
+
+function init(){
+  initUpload();
+  gen();
+  renderGrid();
+  renderLB();
+  renderTop();
+}
+init();
 </script>
 </body>
 </html>
