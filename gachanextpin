@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Game 100 Box</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{
+  --bg1:#1b1b1b;--bg2:#000;--panel:#111;--line:#444;
+  --gold:#ffd700;--silver:#cfcfcf;--bronze:#cd7f32;
+  --cell:44px;--gap:5px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;
+  background:radial-gradient(circle,var(--bg1),var(--bg2));
+  color:#fff;font-family:Arial,sans-serif;overflow-x:hidden
+}
+.app{display:flex;gap:28px;padding:18px}
+.game{width:520px}
+.topbar{display:flex;gap:12px}
+
+/* upload */
+#uploadPanel{display:grid;grid-template-columns:repeat(4,32px);gap:6px}
+.uBtn{width:32px;height:28px;background:#fff;color:#000;border:1px solid #bbb;cursor:pointer}
+
+/* counter */
+#counterPanel{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:6px;padding:8px;background:#111;border:1px solid var(--line);
+  min-width:260px
+}
+.counterItem{background:#000;border:1px solid #555;padding:4px;font-size:12px;text-align:center}
+
+/* grid */
+#grid{margin-top:10px;display:grid;grid-template-columns:repeat(10,var(--cell));gap:var(--gap);perspective:1000px}
+.card{width:var(--cell);height:var(--cell);position:relative;transform-style:preserve-3d;transition:.55s;cursor:pointer}
+.card.flipped{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border:1px solid #666;backface-visibility:hidden;font-size:12px}
+.front{background:#3b3b3b}
+.back{background:#000;transform:rotateY(180deg)}
+.back img{width:100%;height:100%;object-fit:contain}
+
+/* controls */
+.controls{display:flex;gap:8px;margin-top:14px}
+input,select{padding:8px}
+button{padding:8px 14px;cursor:pointer}
+
+/* leaderboard */
+.right{min-width:440px}
+.tableWrap{max-height:320px;overflow-y:auto;overflow-x:hidden;border:1px solid #333}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border:1px solid #555;padding:6px;text-align:center}
+th{background:#222;position:sticky;top:0}
+.lb1{background:var(--gold);color:#000;font-weight:bold}
+.lb2{background:var(--silver);color:#000;font-weight:bold}
+.lb3{background:var(--bronze);color:#000;font-weight:bold}
+
+/* top prize */
+.topPrizes{display:flex;gap:18px;margin-top:14px}
+.tpItem{display:flex;flex-direction:column;align-items:center}
+.tpBox{width:120px;height:100px;background:#000;border:2px solid;display:flex;align-items:center;justify-content:center}
+.tpBox img{width:100%;height:100%;object-fit:contain}
+.gold{border-color:var(--gold)}
+.silver{border-color:var(--silver)}
+.bronze{border-color:var(--bronze)}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<section class="game">
+  <div class="topbar">
+    <div id="uploadPanel"></div>
+    <div id="counterPanel"></div>
+  </div>
+  <div id="grid"></div>
+  <div class="controls">
+    <input id="userId" placeholder="User ID">
+    <select id="pay">
+      <option value="CASH">CASH</option>
+      <option value="SECRET">SECRET</option>
+    </select>
+    <button id="reset">RESET</button>
+    <button id="openAll">OPEN ALL</button>
+  </div>
+</section>
+
+<section class="right">
+  <div class="tableWrap">
+    <table>
+      <thead>
+        <tr><th>🏆</th><th>USER ID</th><th>TOTAL</th><th>SPEND</th></tr>
+      </thead>
+      <tbody id="lb"></tbody>
+    </table>
+  </div>
+
+  <div class="topPrizes">
+    <div class="tpItem"><div id="tp1" class="tpBox gold"></div><div>PRIZE 1</div></div>
+    <div class="tpItem"><div id="tp2" class="tpBox silver"></div><div>PRIZE 2</div></div>
+    <div class="tpItem"><div id="tp3" class="tpBox bronze"></div><div>PRIZE 3</div></div>
+  </div>
+</section>
+
+</div>
+
+<script>
+const PRICE={CASH:2000,SECRET:1}
+const TOTAL={P1:1,P2:1,P3:1,P4:7,P5:10,P6:10,P7:20,P8:50}
+const LABEL={P1:"PRIZE 1",P2:"PRIZE 2",P3:"PRIZE 3",P4:"PRIZE 4",P5:"PRIZE 5",P6:"PRIZE 6",P7:"PRIZE 7",P8:"PRIZE 8"}
+const TOP3=["P1","P2","P3"]
+
+let prizes=[],opened=[],admin=null,adminUsed={P1:false,P2:false,P3:false}
+let images=JSON.parse(localStorage.getItem("imgs")||"{}")
+let lb=JSON.parse(localStorage.getItem("lb")||"{}")
+
+const grid=document.getElementById("grid")
+const counter=document.getElementById("counterPanel")
+const lbBody=document.getElementById("lb")
+
+const uid=()=>document.getElementById("userId").value.trim().toUpperCase()
+
+function gen(){
+  prizes=[]
+  Object.entries(TOTAL).forEach(([p,n])=>{for(let i=0;i<n;i++)prizes.push(p)})
+  prizes.sort(()=>Math.random()-0.5)
+  opened=Array(100).fill(false)
+  admin=null;adminUsed={P1:false,P2:false,P3:false}
+}
+
+function renderGrid(){
+  grid.innerHTML=""
+  for(let i=0;i<100;i++){
+    const d=document.createElement("div")
+    d.className="card"
+    d.innerHTML=`<div class="face front">${i+1}</div><div class="face back">${images[prizes[i]]?`<img src="${images[prizes[i]]}">`:LABEL[prizes[i]]}</div>`
+    d.onclick=()=>open(i,d,true)
+    grid.appendChild(d)
+  }
+  renderCounter()
+}
+
+function renderCounter(){
+  counter.innerHTML=""
+  Object.keys(TOTAL).forEach(p=>{
+    const used=prizes.filter((x,i)=>x===p&&opened[i]).length
+    counter.innerHTML+=`<div class="counterItem">${LABEL[p]} : ${TOTAL[p]-used}</div>`
+  })
+}
+
+function renderLB(){
+  lbBody.innerHTML=""
+  Object.entries(lb).sort((a,b)=>b[1].open-a[1].open).forEach(([u,d],i)=>{
+    const tr=document.createElement("tr")
+    if(i<3)tr.className=["lb1","lb2","lb3"][i]
+    tr.innerHTML=`<td>${i+1}</td><td>${u}</td><td>${d.open}</td><td>Rp.${(d.cash||0).toLocaleString()}/${d.secret||0} SECRET</td>`
+    lbBody.appendChild(tr)
+  })
+}
+
+function open(i,el,count){
+  if(opened[i])return
+  if(count && !uid())return alert("ISI USER ID")
+  let p=prizes[i]
+
+  if(admin && !adminUsed[admin]){
+    const j=prizes.findIndex((x,k)=>!opened[k]&&x===admin)
+    if(j!==-1){[prizes[i],prizes[j]]=[prizes[j],prizes[i]];p=admin;adminUsed[admin]=true}
+    admin=null
+  }else if(TOP3.includes(p)&&count)return
+
+  opened[i]=true
+  el.classList.add("flipped")
+
+  if(count){
+    lb[uid()]??={open:0,cash:0,secret:0}
+    lb[uid()].open++
+    lb[uid()][document.getElementById("pay").value.toLowerCase()]+=PRICE[document.getElementById("pay").value]
+    localStorage.setItem("lb",JSON.stringify(lb))
+    renderLB()
+  }
+  renderCounter()
+}
+
+document.getElementById("openAll").onclick=()=>{
+  document.querySelectorAll(".card").forEach((c,i)=>!opened[i]&&open(i,c,false))
+}
+
+document.getElementById("reset").onclick=()=>{gen();renderGrid()}
+
+document.addEventListener("keydown",e=>{
+  if(e.key==="F1")admin="P1"
+  if(e.key==="F2")admin="P2"
+  if(e.key==="F3")admin="P3"
+  if(e.key==="F6"&&confirm("Reset leaderboard?")){lb={};localStorage.setItem("lb","{}");renderLB()}
+})
+
+function init(){
+  const up=document.getElementById("uploadPanel")
+  Object.keys(TOTAL).forEach((p,i)=>{
+    const inp=document.createElement("input")
+    inp.type="file";inp.hidden=true
+    inp.onchange=e=>{
+      const r=new FileReader()
+      r.onload=()=>{images[p]=r.result;localStorage.setItem("imgs",JSON.stringify(images));renderGrid();renderTop()}
+      r.readAsDataURL(e.target.files[0])
+    }
+    const b=document.createElement("button")
+    b.className="uBtn";b.textContent=i+1;b.onclick=()=>inp.click()
+    up.append(b,inp)
+  })
+  gen();renderGrid();renderLB();renderTop()
+}
+
+function renderTop(){
+  ["P1","P2","P3"].forEach((p,i)=>{
+    document.getElementById("tp"+(i+1)).innerHTML=images[p]?`<img src="${images[p]}">`:LABEL[p]
+  })
+}
+
+init()
+</script>
+</body>
+</html>
